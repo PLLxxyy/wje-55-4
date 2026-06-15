@@ -161,6 +161,7 @@ let currentHaiku = { line1: '', line2: '', line3: '' };
 let currentStyle = 'ink';
 let currentImageUrl = '';
 let favorites = JSON.parse(localStorage.getItem('haikuFavorites') || '[]');
+let stats = JSON.parse(localStorage.getItem('haikuStats') || '{"totalGenerated":0,"emotionCounts":{},"styleCounts":{}}');
 
 // ==================== 工具函数 ====================
 function getRandomItem(arr) {
@@ -321,6 +322,9 @@ function generateAndDisplay() {
   document.getElementById('line1').textContent = haiku.line1;
   document.getElementById('line2').textContent = haiku.line2;
   document.getElementById('line3').textContent = haiku.line3;
+  
+  recordGeneration(currentEmotion, currentStyle);
+  renderStats();
   
   updatePreview();
 }
@@ -485,6 +489,55 @@ function downloadCard() {
   img.src = currentImageUrl;
 }
 
+// ==================== 统计功能 ====================
+function recordGeneration(emotion, style) {
+  stats.totalGenerated++;
+  
+  if (emotion) {
+    stats.emotionCounts[emotion] = (stats.emotionCounts[emotion] || 0) + 1;
+  }
+  
+  if (style) {
+    stats.styleCounts[style] = (stats.styleCounts[style] || 0) + 1;
+  }
+  
+  localStorage.setItem('haikuStats', JSON.stringify(stats));
+}
+
+function getTopEmotion() {
+  const entries = Object.entries(stats.emotionCounts);
+  if (entries.length === 0) return '—';
+  
+  let top = entries[0];
+  for (const [emotion, count] of entries) {
+    if (count > top[1]) {
+      top = [emotion, count];
+    }
+  }
+  return `${top[0]} (${top[1]}次)`;
+}
+
+function getTopStyle() {
+  const entries = Object.entries(stats.styleCounts);
+  if (entries.length === 0) return '—';
+  
+  let top = entries[0];
+  for (const [style, count] of entries) {
+    if (count > top[1]) {
+      top = [style, count];
+    }
+  }
+  const styleName = STYLE_THEMES[top[0]] ? STYLE_THEMES[top[0]].name : top[0];
+  return `${styleName} (${top[1]}次)`;
+}
+
+function renderStats() {
+  document.getElementById('totalGenerated').textContent = stats.totalGenerated;
+  document.getElementById('totalFavorites').textContent = favorites.length;
+  document.getElementById('topEmotion').textContent = getTopEmotion();
+  document.getElementById('topStyle').textContent = getTopStyle();
+}
+
 // ==================== 收藏功能 ====================
 function toggleFavorite() {
   if (!currentHaiku.line1) return;
@@ -513,6 +566,7 @@ function toggleFavorite() {
   localStorage.setItem('haikuFavorites', JSON.stringify(favorites));
   updateFavoriteButton();
   renderFavorites();
+  renderStats();
 }
 
 function updateFavoriteButton() {
@@ -592,6 +646,7 @@ function deleteFavorite(id) {
   localStorage.setItem('haikuFavorites', JSON.stringify(favorites));
   updateFavoriteButton();
   renderFavorites();
+  renderStats();
 }
 
 // ==================== 事件绑定 ====================
@@ -637,6 +692,7 @@ function init() {
   renderEmotionWheel();
   initEventListeners();
   renderFavorites();
+  renderStats();
   updatePreview();
 }
 
